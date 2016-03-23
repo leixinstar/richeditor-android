@@ -5,10 +5,10 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Gravity;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
@@ -19,8 +19,6 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Copyright (C) 2015 Wasabeef
@@ -79,8 +77,6 @@ public class RichEditor extends WebView {
   private OnDecorationStateListener mDecorationStateListener;
   private AfterInitialLoadListener mLoadListener;
 
-  private static ExecutorService sThreadPool = Executors.newSingleThreadExecutor();
-
   public RichEditor(Context context) {
     this(context, null);
   }
@@ -97,37 +93,14 @@ public class RichEditor extends WebView {
     setHorizontalScrollBarEnabled(false);
     getSettings().setJavaScriptEnabled(true);
     setWebChromeClient(new WebChromeClient());
-    setWebViewClient(new WebViewClient() {
-      @Override public void onPageFinished(WebView view, String url) {
-        isReady = url.equalsIgnoreCase(SETUP_HTML);
-        if (mLoadListener != null) {
-          mLoadListener.onAfterInitialLoad(isReady);
-        }
-      }
-
-      @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
-        String decode;
-        try {
-          decode = URLDecoder.decode(url, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-          // No handling
-          return false;
-        }
-
-        if (TextUtils.indexOf(url, CALLBACK_SCHEME) == 0) {
-          callback(decode);
-          return true;
-        } else if (TextUtils.indexOf(url, STATE_SCHEME) == 0) {
-          stateCheck(decode);
-          return true;
-        }
-
-        return super.shouldOverrideUrlLoading(view, url);
-      }
-    });
+    setWebViewClient(createWebviewClient());
     loadUrl(SETUP_HTML);
 
     applyAttributes(context, attrs);
+  }
+
+  protected EditorWebViewClient createWebviewClient() {
+    return new EditorWebViewClient();
   }
 
   public void setOnTextChangeListener(OnTextChangeListener listener) {
@@ -333,6 +306,13 @@ public class RichEditor extends WebView {
     exec("javascript:RE.setTextBackgroundColor('" + hex + "');");
   }
 
+  public void setFontSize(int fontSize) {
+    if (fontSize > 7 || fontSize < 1) {
+      Log.e("RichEditor", "Font size should have a value between 1-7");
+    }
+    exec("javascript:RE.setFontSize('" + fontSize + "');");
+  }
+
   public void removeFormat() {
     exec("javascript:RE.removeFormat();");
   }
@@ -365,6 +345,14 @@ public class RichEditor extends WebView {
     exec("javascript:RE.setBlockquote();");
   }
 
+  public void setBullets() {
+    exec("javascript:RE.setBullets();");
+  }
+
+  public void setNumbers() {
+    exec("javascript:RE.setNumbers();");
+  }
+
   public void insertImage(String url, String alt) {
     exec("javascript:RE.prepareInsert();");
     exec("javascript:RE.insertImage('" + url + "', '" + alt + "');");
@@ -373,6 +361,11 @@ public class RichEditor extends WebView {
   public void insertLink(String href, String title) {
     exec("javascript:RE.prepareInsert();");
     exec("javascript:RE.insertLink('" + href + "', '" + title + "');");
+  }
+
+  public void insertTodo() {
+    exec("javascript:RE.prepareInsert();");
+    exec("javascript:RE.setTodo('" + Utils.getCurrentTime() + "');");
   }
 
   public void focusEditor() {
@@ -388,11 +381,15 @@ public class RichEditor extends WebView {
     return String.format("#%06X", (0xFFFFFF & color));
   }
 
-  private void exec(String trigger) {
+  protected void exec(final String trigger) {
     if (isReady) {
       load(trigger);
     } else {
-      new WaitLoad(trigger).executeOnExecutor(sThreadPool);
+      postDelayed(new Runnable() {
+        @Override public void run() {
+          exec(trigger);
+        }
+      }, 100);
     }
   }
 
@@ -404,31 +401,32 @@ public class RichEditor extends WebView {
     }
   }
 
-  private class WaitLoad extends AsyncTask<Void, Void, Void> {
-
-    private String mTrigger;
-
-    public WaitLoad(String trigger) {
-      super();
-      mTrigger = trigger;
-    }
-
-    @Override protected Void doInBackground(Void... params) {
-      while (!RichEditor.this.isReady) {
-        sleep(100);
+  protected class EditorWebViewClient extends WebViewClient {
+    @Override public void onPageFinished(WebView view, String url) {
+      isReady = url.equalsIgnoreCase(SETUP_HTML);
+      if (mLoadListener != null) {
+        mLoadListener.onAfterInitialLoad(isReady);
       }
-      return null;
     }
 
-    @Override protected void onPostExecute(Void aVoid) {
-      load(mTrigger);
-    }
-
-    private synchronized void sleep(long ms) {
+    @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
+      String decode;
       try {
-        wait(ms);
-      } catch (InterruptedException ignore) {
+        decode = URLDecoder.decode(url, "UTF-8");
+      } catch (UnsupportedEncodingException e) {
+        // No handling
+        return false;
       }
+
+      if (TextUtils.indexOf(url, CALLBACK_SCHEME) == 0) {
+        callback(decode);
+        return true;
+      } else if (TextUtils.indexOf(url, STATE_SCHEME) == 0) {
+        stateCheck(decode);
+        return true;
+      }
+
+      return super.shouldOverrideUrlLoading(view, url);
     }
   }
 }

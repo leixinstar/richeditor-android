@@ -35,8 +35,12 @@ Supported Functions
 - [x] Outdent
 - [x] Insert Image
 - [x] Insert Link
+- [x] Checkbox
 - [x] Text Color
 - [x] Text Background Color
+- [x] Text Font Size
+- [x] Unordered List (Bullets)
+- [x] Ordered List (Numbers)
 
 Attribute change of editor
 ---
@@ -74,7 +78,7 @@ repositories {
 }
 
 dependencies {
-    compile 'jp.wasabeef:richeditor-android:0.3.0'
+    compile 'jp.wasabeef:richeditor-android:1.2.0'
 }
 ```
 ### Default Setting for Editor
@@ -157,6 +161,7 @@ Please [ping](mailto:dadadada.chop@gmail.com) me or send a pull request if you w
 Icon | Application
 ------------ | -------------
 <img src="https://lh6.ggpht.com/6zKH_uQY1bxCwXL4DLo_uoFEOXdShi3BgmN6XRHlaJ-oA1svmq6y1PZkmO50nWQn2Lg=w300-rw" width="48" height="48" /> | [Ameba Ownd](https://play.google.com/store/apps/details?id=jp.co.cyberagent.madrid)
+<img src="https://lh3.googleusercontent.com/st_DiIlM148vzG23ccujtBzx0tMeb7cDC5fDmLSERS-Nr8M_F-PTw4W_jWJsH9mO_b4=w300-rw" width="48" height="48" /> | [ScorePal](https://play.google.com/store/apps/details?id=com.hfd.scorepal)
 
 Developed By
 -------
